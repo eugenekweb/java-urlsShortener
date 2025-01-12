@@ -73,19 +73,6 @@ public class ConsoleUI {
         return true;
     }
 
-    private void listAllMyUrls() {
-        List<ShortUrl> urls = urlService.findAllUrlsByUuid(currentUser.getUUID());
-        if (urls.isEmpty()) {
-            System.out.println("У вас нет ссылок или все они уже были удалены.");
-            return;
-        }
-        System.out.println("Ваши ссылки:");
-        for (int i = 0; i < urls.size(); i++) {
-            ShortUrl url = urls.get(i);
-            System.out.printf("%d. %s%n", i + 1, urlService.getShortUrlStatus(url));
-        }
-    }
-
     private void login() {
         System.out.println("Введите имя пользователя или UUID для входа.");
         String input = scanner.nextLine().trim();
@@ -114,7 +101,7 @@ public class ConsoleUI {
             System.out.println("Пользователь не найден. Хотите зарегистрироваться с именем '" + input + "'? (да/*нет*)");
             if (scanner.nextLine().trim().equalsIgnoreCase("да")) {
                 register(input);
-            }
+            } else register("");
         }
     }
 
@@ -200,6 +187,19 @@ public class ConsoleUI {
         }
     }
 
+    private void listAllMyUrls() {
+        List<ShortUrl> urls = urlService.findAllUrlsByUuid(currentUser.getUUID());
+        if (urls.isEmpty()) {
+            System.out.println("У вас нет ссылок или все они уже были удалены.");
+            return;
+        }
+        System.out.println("Ваши ссылки:");
+        for (int i = 0; i < urls.size(); i++) {
+            ShortUrl url = urls.get(i);
+            System.out.printf("%d. %s%n", i + 1, urlService.getShortUrlStatus(url));
+        }
+    }
+
     private void openUrl() {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
@@ -258,6 +258,7 @@ public class ConsoleUI {
         System.out.println("\nВведите новый лимит кликов:");
         try {
             int newLimit = Integer.parseInt(scanner.nextLine().trim());
+            newLimit = newLimit > 0? newLimit : config.getDefaultClicksLimit();
             urlService.updateUrlClicksLimit(shortPath, newLimit);
             System.out.println("Лимит кликов обновлен");
             showUrlCurrentStatus(shortPath);

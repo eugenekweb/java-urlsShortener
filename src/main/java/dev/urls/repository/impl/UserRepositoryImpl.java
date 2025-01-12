@@ -25,11 +25,4 @@ public class UserRepositoryImpl implements UserRepository {
                 .filter(user -> user.getUsername().equals(username))
                 .findFirst();
     }
-
-    @Override
-    public List<User> findByUsernamePattern(String pattern) {
-        return users.values().stream()
-                .filter(user -> user.getUsername().contains(pattern))
-                .collect(Collectors.toList());
-    }
 }

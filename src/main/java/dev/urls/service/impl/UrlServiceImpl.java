@@ -98,14 +98,15 @@ public class UrlServiceImpl implements UrlService {
 
     @Override
     public Optional<ShortUrl> findByPath(String shortPath) {
-        isShortUrlValid(shortPath, true);
-        return urlRepository.findByPath(shortPath);
+        Optional<ShortUrl> shortUrl = urlRepository.findByPath(shortPath);
+        if (shortUrl.isPresent()) isShortUrlValid(shortPath, true);
+        return shortUrl;
     }
 
     @Override
     public List<ShortUrl> findAllUrlsByUuid(UUID userUuid) {
         return urlRepository.findAllUrlsByUserUuid(userUuid).stream()
-                .filter(shortUrl -> this.isShortUrlValid(shortUrl.getShortPath(), true))
+                .filter(shortUrl -> !this.isShortUrlExpired(shortUrl.getShortPath(), true))
                 .toList();
     }
 
@@ -114,13 +115,14 @@ public class UrlServiceImpl implements UrlService {
         String delimiter = "\t|\t";
         int clicksLeft = shortUrl.getClicksLimit() - shortUrl.getClicksCounter();
         Duration lifeLeft = Duration.between(LocalDateTime.now(), shortUrl.getExpiresAt());
-        long hours = lifeLeft.toHours();
-        long minutes = lifeLeft.minusHours(hours).toMinutes();
-        String lifeLeftFormat = String.format("%d ч. %d мин.", hours, minutes);
+        long days = lifeLeft.toDays();
+        long hours = lifeLeft.minusDays(days).toHours();
+        long minutes = lifeLeft.minusDays(days).minusHours(hours).toMinutes();
+        String lifeLeftFormat = String.format("%d дн. %d ч. %d мин.", days, hours, minutes);
         return getFullShortUrl(shortUrl.getShortPath()) + delimiter
                 + (shortUrl.isActive() ? "Активна" : "Неактивна") + delimiter
                 + "Осталось кликов: " + clicksLeft + delimiter
-                + "Осталось время жизни (ч): " + lifeLeftFormat + delimiter
+                + "Осталось время жизни: " + lifeLeftFormat + delimiter
                 + "Оригинальная ссылка: " + shortUrl.getOriginalUrl();
     }
 
