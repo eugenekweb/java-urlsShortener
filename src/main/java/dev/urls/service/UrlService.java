@@ -10,29 +10,25 @@ import java.util.UUID;
 public interface UrlService {
     ShortUrl createShortUrl(String originalUrl, UUID userUuid, Integer maxClicks, Integer lifetimeHours);
 
-//    Optional<String> getOriginalUrl(String shortPath);
+    void deleteShortUrl(String shortCode);
+
+    Optional<ShortUrl> findByPath(String shortPath);
+
+    List<ShortUrl> findAllUrlsByUuid(UUID userUuid);
+
+    Optional<ShortUrl> getShortUrl(String shortPath);
 
     UUID getShortUrlOwner(String shortPath);
+
+    String getFullShortUrl(String shortPath);
+
+    String getShortUrlStatus(ShortUrl shortUrl) throws URISyntaxException;
 
     void clickShortUrl(String shortPath);
 
     void updateUrlClicksLimit(String shortPath, int newLimit);
 
     void updateUrlLifeTime(String shortPath, int hours);
-
-    void deleteShortUrl(String shortCode);
-
-//    boolean isShortUrlValid(String shortPath);
-
-    Optional<ShortUrl> getShortUrl(String shortPath);
-
-    String getFullShortUrl(ShortUrl shortUrl) throws URISyntaxException;
-
-    Optional<ShortUrl> findByPath(String shortPath);
-
-    List<ShortUrl> findAllUrlsByUuid(UUID userUuid);
-
-    String getShortUrlStatus(ShortUrl shortUrl) throws URISyntaxException;
 }
 
 

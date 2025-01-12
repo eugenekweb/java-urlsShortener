@@ -7,10 +7,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface UrlRepository {
+
     long getNextUrlId();
+
     void save(ShortUrl shortUrl);
-    Optional<ShortUrl> findById(Long id);
-    Optional<ShortUrl> findByPath(String path);
-    List<ShortUrl> findAllUrlsByUserUuid(UUID uuid);
+
     void delete(String path);
+
+    Optional<ShortUrl> findByPath(String path);
+
+    List<ShortUrl> findAllUrlsByUserUuid(UUID uuid);
 }

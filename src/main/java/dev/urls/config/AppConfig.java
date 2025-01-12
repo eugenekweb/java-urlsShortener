@@ -20,6 +20,8 @@ public class AppConfig {
     @Getter
     private int defaultLifetimeHours;
     @Getter
+    private int defaultLifetimeMin;
+    @Getter
     private int defaultClicksLimit;
 
     public AppConfig() {
@@ -32,7 +34,6 @@ public class AppConfig {
     private void loadProperties() {
         @Cleanup @NonNull
         InputStream input = getClass().getClassLoader().getResourceAsStream(CONFIG_FILE);
-        System.out.println(input);
         properties.load(input);
     }
 
@@ -40,6 +41,7 @@ public class AppConfig {
         domain = properties.getProperty("url.domain");
         shortUrlLength = Integer.parseInt(properties.getProperty("url.length"));
         defaultLifetimeHours = Integer.parseInt(properties.getProperty("url.default.lifetime.hours"));
+        defaultLifetimeMin = Integer.parseInt(properties.getProperty("url.default.lifetime.min"));
         defaultClicksLimit = Integer.parseInt(properties.getProperty("url.default.clicks.limit"));
     }
 }

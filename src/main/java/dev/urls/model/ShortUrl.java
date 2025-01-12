@@ -17,4 +17,5 @@ public class ShortUrl {
     private int clicksLimit;
     private int clicksCounter;
     private boolean isActive = true;
+
 }

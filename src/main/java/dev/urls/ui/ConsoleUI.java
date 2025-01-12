@@ -6,7 +6,6 @@ import dev.urls.model.User;
 import dev.urls.service.UserService;
 import dev.urls.service.impl.UrlServiceImpl;
 
-import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
@@ -26,19 +25,6 @@ public class ConsoleUI {
         this.urlService = urlShortenerService;
     }
 
-
-    public void start()  {
-        boolean running = true;
-        while (running) {
-            if (currentUser == null) {
-                showLoginMenu();
-            } else {
-                running = showMainMenu();
-            }
-        }
-        System.out.println("Программа завершена");
-    }
-
     private void showLoginMenu() {
         System.out.println("\n=== Меню входа ===");
         System.out.println("1. Войти и создать ссылку / управление ссылками");
@@ -55,7 +41,7 @@ public class ConsoleUI {
         }
     }
 
-    private boolean showMainMenu()  {
+    private boolean showMainMenu() {
         System.out.println("\n=== Главное меню ===");
         System.out.println("Пользователь: " + currentUser.getUsername());
         System.out.println("1. Создать короткую ссылку");
@@ -98,40 +84,7 @@ public class ConsoleUI {
             ShortUrl url = urls.get(i);
             System.out.printf("%d. %s%n", i + 1, urlService.getShortUrlStatus(url));
         }
-//        System.out.print("Выберите номер ссылки для дальнейших действий с ней:");
-//        try {
-//            int choice = Integer.parseInt(scanner.nextLine().trim()) - 1;
-//            if (choice >= 0 && choice < urls.size()) {
-//                handleSelectedUrl(urls.get(choice));
-//            } else {
-//                System.out.println("Такого номера ссылки нет. Повторите ввод: ");
-//            }
-//        } catch (NumberFormatException e) {
-//            System.out.println("Похоже, Вы ввели не число. Повторите ввод: ");
-//        }
     }
-//
-//    private void handleSelectedUrl(ShortUrl selectedUrl) {
-//        System.out.println("Выбранная ссылка: " + selectedUrl.toString());
-//        System.out.println("Выберите действие:");
-//        System.out.println("1. Открыть ссылку");
-//        System.out.println("2. Просмотреть статус ссылки");
-//        System.out.println("3. Изменить лимит кликов");
-//        System.out.println("4. Изменить время жизни ссылки");
-//        System.out.println("5. Удалить ссылку");
-//        System.out.println("6. Вернуться в главное меню");
-//
-//        String choice = scanner.nextLine().trim();
-//        switch (choice) {
-//            case "1" -> openUrl(selectedUrl.getShortPath());
-//            case "2" -> showUrlStatus(selectedUrl.getShortPath());
-//            case "3" -> updateClicksLimit(selectedUrl.getShortPath());
-//            case "4" -> updateLifetime(selectedUrl.getShortPath());
-//            case "5" -> deleteUrl(selectedUrl.getShortPath());
-//            case "6" -> { /* Вернуться в главное меню */ }
-//            default -> System.out.println("Что-то пошло не так! Повторите команду.");
-//        }
-//    }
 
     private void login() {
         System.out.println("Введите имя пользователя или UUID для входа.");
@@ -158,7 +111,7 @@ public class ConsoleUI {
             System.out.println("Напомню, Ваш UUID: " + currentUser.getUUID());
         } else {
             // Если пользователь не найден, предлагаем зарегистрироваться
-            System.out.println("Пользователь не найден. Хотите зарегистрироваться с именем '" + input + "'? (да/нет)");
+            System.out.println("Пользователь не найден. Хотите зарегистрироваться с именем '" + input + "'? (да/*нет*)");
             if (scanner.nextLine().trim().equalsIgnoreCase("да")) {
                 register(input);
             }
@@ -173,7 +126,9 @@ public class ConsoleUI {
         }
 
         if (username.isEmpty()) {
-            username = "User-" + String.valueOf(this.hashCode()).substring(0, 7);
+            do {
+                username = "User-" + String.valueOf(this.hashCode()).substring(0, 7);
+            } while (userService.findByUsername(username).isPresent());
         } else {
             String name = username;
             while (true) {
@@ -203,47 +158,46 @@ public class ConsoleUI {
         System.out.println("Введите оригинальную ссылку:");
         String originalUrl = scanner.nextLine().trim();
 
-        // Запрашиваем опциональные параметры
+        // Запрашиваем опциональные параметры ссылки
         Integer lifetime = askForSetLifetime();
+        lifetime = lifetime > 0 ? lifetime : config.getDefaultLifetimeMin();
         Integer clicksLimit = askForSetClicksLimit();
 
         try {
             ShortUrl shortUrl = urlService.createShortUrl(originalUrl, currentUser.getUUID(), lifetime, clicksLimit);
             System.out.println("Создана короткая ссылка:");
-            System.out.println(urlService.getFullShortUrl(shortUrl));
+            System.out.println(urlService.getFullShortUrl(shortUrl.getShortPath()));
         } catch (IllegalArgumentException e) {
             System.out.println("Ошибка создания ссылки: " + e.getMessage());
         }
     }
 
     private Integer askForSetLifetime() {
-        System.out.println("Хотите установить своё время жизни ссылки? (да/**нет**)");
-        System.out.println("По умолчанию (часы): " + config.getDefaultLifetimeHours());
+        System.out.println("Хотите установить своё время жизни ссылки?\n(введите нужное значение или Enter для значения по умолчанию)");
+        int defaultValue = config.getDefaultLifetimeHours();
+        System.out.println("Значение по умолчанию (часы): " + defaultValue);
 
-        if (scanner.nextLine().trim().equalsIgnoreCase("да")) {
-            System.out.println("Введите время жизни в часах:");
-            try {
-                return Integer.parseInt(scanner.nextLine().trim());
-            } catch (NumberFormatException e) {
-                System.out.println("Неверный формат. Будет использовано значение по умолчанию.");
-            }
+        System.out.println("Введите время жизни в часах:");
+        try {
+            return Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Неверный формат. Будет использовано значение по умолчанию.");
+            return defaultValue;
         }
-        return null;
     }
 
     private Integer askForSetClicksLimit() {
-        System.out.println("Хотите установить свой лимит кликов? (да/**нет**)");
-        System.out.println("По умолчанию (клики): " + config.getDefaultClicksLimit());
+        System.out.println("Хотите установить свой лимит кликов?\n(введите нужное значение или Enter для значения по умолчанию)");
+        int defaultValue = config.getDefaultClicksLimit();
+        System.out.println("Значение по умолчанию (клики): " + defaultValue);
 
-        if (scanner.nextLine().trim().equalsIgnoreCase("да")) {
-            System.out.println("Введите лимит кликов:");
-            try {
-                return Integer.parseInt(scanner.nextLine().trim());
-            } catch (NumberFormatException e) {
-                System.out.println("Неверный формат. Будет использовано значение по умолчанию.");
-            }
+        System.out.println("Введите лимит кликов:");
+        try {
+            return Integer.parseInt(scanner.nextLine().trim());
+        } catch (NumberFormatException e) {
+            System.out.println("Неверный формат. Будет использовано значение по умолчанию.");
+            return defaultValue;
         }
-        return null;
     }
 
     private void openUrl() {
@@ -278,11 +232,14 @@ public class ConsoleUI {
     private void showUrlStatus() {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
-        System.out.println(getShortUrlStatus(shortPath));
+        String status = getShortUrlStatus(shortPath);
+        if (status != null) System.out.println(status);
     }
 
     private String getShortUrlStatus(String shortPath) {
+        if (isOperationAvailable(shortPath))
             return urlService.getShortUrlStatus(urlService.findByPath(shortPath).get());
+        else return null;
     }
 
     private void showUrlCurrentStatus(String shortPath) {
@@ -322,7 +279,7 @@ public class ConsoleUI {
         System.out.println("\nВведите новое время жизни ссылки (в часах от текущего времени):");
         try {
             int newLifetime = Integer.parseInt(scanner.nextLine().trim());
-            urlService.updateUrlLifeTime(shortPath, newLifetime);
+            urlService.updateUrlLifeTime(shortPath, (newLifetime > 0) ? newLifetime : config.getDefaultLifetimeMin());
             System.out.println("Время жизни обновлено");
             showUrlCurrentStatus(shortPath);
         } catch (NumberFormatException e) {
@@ -344,5 +301,17 @@ public class ConsoleUI {
         } catch (IllegalArgumentException e) {
             System.out.println("Ошибка удаления: " + e.getMessage());
         }
+    }
+
+    public void start() {
+        boolean running = true;
+        while (running) {
+            if (currentUser == null) {
+                showLoginMenu();
+            } else {
+                running = showMainMenu();
+            }
+        }
+        System.out.println("Программа завершена");
     }
 }

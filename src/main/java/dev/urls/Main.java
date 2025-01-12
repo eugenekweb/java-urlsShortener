@@ -15,6 +15,7 @@ import java.net.URISyntaxException;
 
 public class Main {
     public static void main(String[] args) throws URISyntaxException {
+        // Инициализация конфигурации и инстансов
         AppConfig config = new AppConfig();
         UrlRepository urlRepository = new UrlRepositoryImpl();
         UserRepository userRepository = new UserRepositoryImpl();

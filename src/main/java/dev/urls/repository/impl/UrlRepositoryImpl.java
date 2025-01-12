@@ -4,12 +4,12 @@ import dev.urls.model.ShortUrl;
 import dev.urls.repository.UrlRepository;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class UrlRepositoryImpl implements UrlRepository {
     private final Map<Long, ShortUrl> urlsById = new HashMap<>();
     private long nextUrlId = 0;
 
+    @Override
     public long getNextUrlId() {
         return nextUrlId++;
     }
@@ -17,11 +17,6 @@ public class UrlRepositoryImpl implements UrlRepository {
     @Override
     public void save(ShortUrl shortUrl) {
         urlsById.put(shortUrl.getId(), shortUrl);
-    }
-
-    @Override
-    public Optional<ShortUrl> findById(Long id) {
-        return Optional.ofNullable(urlsById.get(id));
     }
 
     @Override
@@ -35,14 +30,12 @@ public class UrlRepositoryImpl implements UrlRepository {
     public List<ShortUrl> findAllUrlsByUserUuid(UUID userUuid) {
         return urlsById.values().stream()
                 .filter(url -> url.getUserUuid().equals(userUuid))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public void delete(String path) {
-        ShortUrl urlToDelete = urlsById.values().stream()
-                .filter(url -> url.getShortPath().equals(path))
-                .findFirst()
+        ShortUrl urlToDelete = findByPath(path)
                 .orElse(null);
 
         if (urlToDelete != null) {

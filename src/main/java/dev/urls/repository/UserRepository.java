@@ -10,5 +10,4 @@ public interface UserRepository {
     void save(User user);
     Optional<User> findByUuid(UUID uuid);
     Optional<User> findByUsername(String username);
-    List<User> findByUsernamePattern(String pattern);
 }
