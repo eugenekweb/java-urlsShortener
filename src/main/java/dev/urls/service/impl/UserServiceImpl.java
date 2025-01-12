@@ -4,9 +4,7 @@ import dev.urls.model.User;
 import dev.urls.repository.UserRepository;
 import dev.urls.service.UserService;
 
-import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.UUID;
 
 public class UserServiceImpl implements UserService {
@@ -25,11 +23,6 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
         return user;
-    }
-
-    @Override
-    public List<User> findByUsernamePattern(String pattern) {
-        return userRepository.findByUsernamePattern(pattern);
     }
 
     @Override

@@ -6,9 +6,6 @@ import dev.urls.model.User;
 import dev.urls.service.UserService;
 import dev.urls.service.impl.UrlServiceImpl;
 
-import java.awt.*;
-import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +27,7 @@ public class ConsoleUI {
     }
 
 
-    public void start() throws URISyntaxException {
+    public void start()  {
         boolean running = true;
         while (running) {
             if (currentUser == null) {
@@ -58,7 +55,7 @@ public class ConsoleUI {
         }
     }
 
-    private boolean showMainMenu() throws URISyntaxException {
+    private boolean showMainMenu()  {
         System.out.println("\n=== Главное меню ===");
         System.out.println("Пользователь: " + currentUser.getUsername());
         System.out.println("1. Создать короткую ссылку");
@@ -90,7 +87,7 @@ public class ConsoleUI {
         return true;
     }
 
-    private void listAllMyUrls() throws URISyntaxException {
+    private void listAllMyUrls() {
         List<ShortUrl> urls = urlService.findAllUrlsByUuid(currentUser.getUUID());
         if (urls.isEmpty()) {
             System.out.println("У вас нет ссылок или все они уже были удалены.");
@@ -207,19 +204,19 @@ public class ConsoleUI {
         String originalUrl = scanner.nextLine().trim();
 
         // Запрашиваем опциональные параметры
-        Integer lifetime = askForLifetime();
-        Integer clicksLimit = askForClicksLimit();
+        Integer lifetime = askForSetLifetime();
+        Integer clicksLimit = askForSetClicksLimit();
 
         try {
             ShortUrl shortUrl = urlService.createShortUrl(originalUrl, currentUser.getUUID(), lifetime, clicksLimit);
             System.out.println("Создана короткая ссылка:");
             System.out.println(urlService.getFullShortUrl(shortUrl));
-        } catch (IllegalArgumentException | URISyntaxException e) {
+        } catch (IllegalArgumentException e) {
             System.out.println("Ошибка создания ссылки: " + e.getMessage());
         }
     }
 
-    private Integer askForLifetime() {
+    private Integer askForSetLifetime() {
         System.out.println("Хотите установить своё время жизни ссылки? (да/**нет**)");
         System.out.println("По умолчанию (часы): " + config.getDefaultLifetimeHours());
 
@@ -234,7 +231,7 @@ public class ConsoleUI {
         return null;
     }
 
-    private Integer askForClicksLimit() {
+    private Integer askForSetClicksLimit() {
         System.out.println("Хотите установить свой лимит кликов? (да/**нет**)");
         System.out.println("По умолчанию (клики): " + config.getDefaultClicksLimit());
 
@@ -253,53 +250,60 @@ public class ConsoleUI {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
 
-        Optional<String> originalUrl = urlService.getOriginalUrl(shortPath);
-        if (originalUrl.isPresent()) {
-            try {
-                Desktop.getDesktop().browse(new URI(originalUrl.get()));
-                System.out.println("Ссылка открыта в браузере");
-            } catch (IOException | URISyntaxException e) {
-                System.out.println("Ошибка открытия ссылки: " + e.getMessage());
-            }
-        } else {
-            System.out.println("Ссылка недоступна или не существует");
+        if (isOperationAvailable(shortPath)) {
+            urlService.clickShortUrl(shortPath);
         }
     }
 
-    private void showUrlStatus() throws URISyntaxException {
+    private boolean isOperationAvailable(String shortPath) {
+        if (isShortUrlExists(shortPath)) {
+            if (urlService.getShortUrlOwner(shortPath).equals(currentUser.getUUID())) {
+                return true;
+            } else {
+                System.out.println("У Вас нет прав на манипуляции с этой ссылкой");
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private boolean isShortUrlExists(String shortPath) {
+        if (urlService.findByPath(shortPath).isEmpty()) {
+            System.out.println("Ссылка не найдена");
+            return false;
+        }
+        return true;
+    }
+
+    private void showUrlStatus() {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
-//        System.out.println(urlService.getShortUrl(shortPath));
-        System.out.println(urlService.getShortUrlStatus(urlService.findByPath(shortPath).get()));
+        System.out.println(getShortUrlStatus(shortPath));
+    }
+
+    private String getShortUrlStatus(String shortPath) {
+            return urlService.getShortUrlStatus(urlService.findByPath(shortPath).get());
+    }
+
+    private void showUrlCurrentStatus(String shortPath) {
+        System.out.println("Текущий статус ссылки:");
+        System.out.println(getShortUrlStatus(shortPath));
     }
 
     private void updateClicksLimit() {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
 
-//         Проверяем существование ссылки и права доступа
-        Optional<ShortUrl> urlOpt = urlService.findByPath(shortPath);
-        if (urlOpt.isEmpty()) {
-            System.out.println("Ссылка не найдена");
-            return;
-        }
+        if (!isOperationAvailable(shortPath)) return;
 
-        ShortUrl url = urlOpt.get();
-        if (!url.getUserUuid().equals(currentUser.getUUID())) {
-            System.out.println("У вас нет прав на изменение этой ссылки");
-            return;
-        }
-
-        // Показываем текущие параметры
-        System.out.println("Текущий статус ссылки:");
-        System.out.println(urlService.getShortUrl(shortPath));
+        showUrlCurrentStatus(shortPath);
 
         System.out.println("\nВведите новый лимит кликов:");
         try {
             int newLimit = Integer.parseInt(scanner.nextLine().trim());
-            urlService.updateClicksLimit(shortPath, currentUser.getUUID(), newLimit);
-            System.out.println("Лимит кликов обновлен. Новый статус ссылки:");
-            System.out.println(urlService.getShortUrl(shortPath));
+            urlService.updateUrlClicksLimit(shortPath, newLimit);
+            System.out.println("Лимит кликов обновлен");
+            showUrlCurrentStatus(shortPath);
         } catch (NumberFormatException e) {
             System.out.println("Неверный формат числа");
         } catch (IllegalArgumentException e) {
@@ -311,29 +315,16 @@ public class ConsoleUI {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
 
-        // Проверяем существование ссылки и права доступа
-        Optional<ShortUrl> urlOpt = urlService.findByPath(shortPath);
-        if (urlOpt.isEmpty()) {
-            System.out.println("Ссылка не найдена");
-            return;
-        }
+        if (!isOperationAvailable(shortPath)) return;
 
-        ShortUrl url = urlOpt.get();
-        if (!url.getUserUuid().equals(currentUser.getUUID())) {
-            System.out.println("У вас нет прав на изменение этой ссылки");
-            return;
-        }
+        showUrlCurrentStatus(shortPath);
 
-        // Показываем текущие параметры
-        System.out.println("Текущий статус ссылки:");
-        System.out.println(urlService.getShortUrl(shortPath));
-
-        System.out.println("\nВведите новое время жизни ссылки (в часах):");
+        System.out.println("\nВведите новое время жизни ссылки (в часах от текущего времени):");
         try {
             int newLifetime = Integer.parseInt(scanner.nextLine().trim());
-//            urlShortenerService.updateLifetime(shortPath, currentUser.getUuid(), newLifetime);
-            System.out.println("Время жизни обновлено. Новый статус ссылки:");
-            System.out.println(urlService.getShortUrl(shortPath));
+            urlService.updateUrlLifeTime(shortPath, newLifetime);
+            System.out.println("Время жизни обновлено");
+            showUrlCurrentStatus(shortPath);
         } catch (NumberFormatException e) {
             System.out.println("Неверный формат числа");
         } catch (IllegalArgumentException e) {
@@ -345,8 +336,10 @@ public class ConsoleUI {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
 
+        if (!isOperationAvailable(shortPath)) return;
+
         try {
-            urlService.deleteShortUrl(shortPath, currentUser.getUUID());
+            urlService.deleteShortUrl(shortPath);
             System.out.println("Ссылка успешно удалена");
         } catch (IllegalArgumentException e) {
             System.out.println("Ошибка удаления: " + e.getMessage());

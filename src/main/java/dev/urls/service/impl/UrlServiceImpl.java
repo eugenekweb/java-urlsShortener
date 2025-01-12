@@ -2,6 +2,8 @@ package dev.urls.service.impl;
 
 import dev.urls.config.AppConfig;
 
+import java.awt.*;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -68,74 +70,88 @@ public class UrlServiceImpl implements UrlService {
         if (isShortUrlValid(shortPath)) {
             shortUrl.setClicksCounter(shortUrl.getClicksCounter() + 1);
         }
-//        urlRepository.findByPath(shortPath)
-//                .filter(this::isUrlValid)
-//                .map(url -> {
-//                    url.setClicksCounter(url.getClicksCounter() + 1);
-//                });
+        try {
+            Desktop.getDesktop().browse(new URI(shortUrl.getOriginalUrl()));
+            System.out.println("Ссылка открыта в браузере");
+        } catch (URISyntaxException | IOException e) {
+            System.out.println("Ошибка открытия ссылки: " + e.getMessage());
+        }
     }
 
-    public Optional<String> getOriginalUrl(String shortPath) {
+    private Optional<String> getOriginalUrl(String shortPath) {
         return Optional.ofNullable(urlRepository.findByPath(shortPath).get().getOriginalUrl());
     }
 
-    public void updateClicksLimit(String shortPath, UUID userUuid, int newLimit) {
-        ShortUrl url = checkShortUrlOwner(shortPath, userUuid);
-        url.setClicksLimit(newLimit);
-        urlRepository.save(url);
+    @Override
+    public UUID getShortUrlOwner(String shortPath) {
+        return findByPath(shortPath).get().getUserUuid();
     }
 
-    public void deleteShortUrl(String shortPath, UUID userUuid) {
-        checkShortUrlOwner(shortPath, userUuid);
+    public void updateUrlClicksLimit(String shortPath, int newLimit) {
+        if (isShortUrlExpired(shortPath)) return;
+        ShortUrl url = findByPath(shortPath).get();
+        url.setClicksLimit(newLimit);
+        url.setClicksCounter(0);
+        url.setActive(true);
+        isShortUrlValid(shortPath);
+//        urlRepository.save(url); //?
+    }
+
+    @Override
+    public void updateUrlLifeTime(String shortPath, int hours) {
+        if (isShortUrlExpired(shortPath)) return;
+        ShortUrl url = findByPath(shortPath).get();
+        url.setExpiresAt(LocalDateTime.now().plusHours(hours));
+        isShortUrlValid(shortPath);
+//        urlRepository.save(url); //?
+    }
+
+    public void deleteShortUrl(String shortPath) {
         urlRepository.delete(shortPath);
     }
 
-    @Override
-    public boolean isShortUrlExpired(String shortPath) {
-        return getShortUrl(shortPath).get().getExpiresAt().isBefore(LocalDateTime.now());
+    private boolean isShortUrlExpired(String shortPath) {
+        if (getShortUrl(shortPath).get().getExpiresAt().isAfter(LocalDateTime.now())) {
+            return false;
+        } else {
+            deleteShortUrl(shortPath);
+            System.out.println("Ссылка устарела и была удалена");
+            return true;
+        }
     }
 
-    @Override
-    public boolean isShortUrlActive(String shortPath) {
-        return getShortUrl(shortPath).get().isActive();
-    }
-
-    @Override
-    public boolean isShortUrlLimitExceeded(String shortPath) {
-        ShortUrl shortUrl = getShortUrl(shortPath).get();
-        return shortUrl.getClicksCounter() >= shortUrl.getClicksLimit();
-    }
-
-
-    private boolean isShortUrlValid(String shortPath) {
-        if (!isShortUrlActive(shortPath)) {
+    private boolean isShortUrlActive(String shortPath) {
+        if (getShortUrl(shortPath).get().isActive()) {
+            return true;
+        } else {
             System.out.println("Ссылка не активна");
             return false;
         }
-        if (isShortUrlExpired(shortPath)) {
-            urlRepository.delete(shortPath);
-            System.out.println("Ссылка устарела и была удалена");
-            return false;
-        }
-        if (isShortUrlLimitExceeded(shortPath)) {
-            findByPath(shortPath).get().setActive(false);
+    }
+
+    private boolean isShortUrlLimitExceeded(String shortPath) {
+        ShortUrl shortUrl = getShortUrl(shortPath).get();
+        if (shortUrl.getClicksCounter() >= shortUrl.getClicksLimit()) {
+            shortUrl.setActive(false);
             System.out.println("Ссылка достигла или уже превышает лимит кликов");
             return false;
         }
         return true;
     }
 
-    private ShortUrl checkShortUrlOwner(String shortPath, UUID userUuid) {
-        return urlRepository.findByPath(shortPath)
-                .filter(url -> url.getUserUuid().equals(userUuid))
-                .orElseThrow(() -> new IllegalArgumentException("Такой ссылки нет, либо это не Ваша ссылка"));
+
+    private boolean isShortUrlValid(String shortPath) {
+        if (!isShortUrlActive(shortPath)) return false;
+        if (isShortUrlExpired(shortPath)) return false;
+        if (isShortUrlLimitExceeded(shortPath)) return false;
+        return true;
     }
 
-    private void validateUrl(String url) {
+     private void validateUrl(String url) {
         try {
             new URL(url);
         } catch (MalformedURLException e) {
-            throw new IllegalArgumentException("Invalid URL format");
+            throw new IllegalArgumentException("Неверный формат URL");
         }
     }
 
@@ -145,7 +161,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    public String getFullShortUrl(ShortUrl shortUrl) throws URISyntaxException {
+    public String getFullShortUrl(ShortUrl shortUrl) {
         return URI.create(config.getDomain() + "/" + shortUrl.getShortPath()).toString();
     }
 
@@ -160,7 +176,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
-    public String getShortUrlStatus(ShortUrl shortUrl) throws URISyntaxException {
+    public String getShortUrlStatus(ShortUrl shortUrl) {
         String delimiter = "\t|\t";
         int clicksLeft = shortUrl.getClicksLimit() - shortUrl.getClicksCounter();
         Duration lifeLeft = Duration.between(LocalDateTime.now(), shortUrl.getExpiresAt());

@@ -10,19 +10,19 @@ import java.util.UUID;
 public interface UrlService {
     ShortUrl createShortUrl(String originalUrl, UUID userUuid, Integer maxClicks, Integer lifetimeHours);
 
-    Optional<String> getOriginalUrl(String shortPath);
+//    Optional<String> getOriginalUrl(String shortPath);
+
+    UUID getShortUrlOwner(String shortPath);
 
     void clickShortUrl(String shortPath);
 
-    void updateClicksLimit(String shortPath, UUID userUuid, int newLimit);
+    void updateUrlClicksLimit(String shortPath, int newLimit);
 
-    void deleteShortUrl(String shortCode, UUID userUuid);
+    void updateUrlLifeTime(String shortPath, int hours);
 
-    boolean isShortUrlExpired(String shortPath);
+    void deleteShortUrl(String shortCode);
 
-    boolean isShortUrlActive(String shortPath);
-
-    boolean isShortUrlLimitExceeded(String shortPath);
+//    boolean isShortUrlValid(String shortPath);
 
     Optional<ShortUrl> getShortUrl(String shortPath);
 
