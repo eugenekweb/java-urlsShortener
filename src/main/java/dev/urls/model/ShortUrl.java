@@ -1,7 +1,6 @@
 package dev.urls.model;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -9,13 +8,13 @@ import java.util.UUID;
 @Data
 @Builder
 public class ShortUrl {
-    private long id;
-    private String originalUrl;
-    private String shortPath;
-    private UUID userUuid;
-    private LocalDateTime createdAt;
+    @NonNull private long id;
+    @NonNull private String originalUrl;
+    @NonNull @Setter(AccessLevel.NONE) private String shortPath;
+    @NonNull private UUID userUuid;
+    @NonNull @Setter(AccessLevel.NONE) private LocalDateTime createdAt;
     private LocalDateTime expiresAt;
     private int clicksLimit;
     private int clicksCounter;
-    private boolean isActive;
+    private boolean isActive = true;
 }

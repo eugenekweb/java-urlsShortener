@@ -1,13 +1,18 @@
 package dev.urls.model;
 
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
 
 import java.util.UUID;
 
-@Data
 @Builder
+@EqualsAndHashCode
+@ToString
 public class User {
-    private UUID uuid;
-    private String username;
+    @Getter private final UUID UUID;
+    @Getter @Setter private String username;
+
+    public User(UUID uuid, String username) {
+        this.UUID = uuid;
+        this.username = username;
+    }
 }
