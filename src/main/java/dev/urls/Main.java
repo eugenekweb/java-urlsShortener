@@ -11,8 +11,10 @@ import dev.urls.service.impl.UserServiceImpl;
 import dev.urls.ui.ConsoleUI;
 import lombok.val;
 
+import java.net.URISyntaxException;
+
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws URISyntaxException {
         AppConfig config = new AppConfig();
         UrlRepository urlRepository = new UrlRepositoryImpl();
         UserRepository userRepository = new UserRepositoryImpl();
@@ -27,3 +29,4 @@ public class Main {
         consoleUI.start();
     }
 }
+

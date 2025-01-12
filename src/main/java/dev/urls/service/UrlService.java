@@ -3,6 +3,7 @@ package dev.urls.service;
 import dev.urls.model.ShortUrl;
 
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,18 +12,27 @@ public interface UrlService {
 
     Optional<String> getOriginalUrl(String shortPath);
 
-    //    String resolveShortUrl(String shortCode);
+    void clickShortUrl(String shortPath);
+
     void updateClicksLimit(String shortPath, UUID userUuid, int newLimit);
 
-    void deleteUrl(String shortCode, UUID userUuid);
+    void deleteShortUrl(String shortCode, UUID userUuid);
 
-    //    boolean isUrlExpired(String shortCode);
-//    boolean isUrlLimitExceeded(String shortCode);
-    Optional<ShortUrl> getShortUrl(String shortCode);
+    boolean isShortUrlExpired(String shortPath);
+
+    boolean isShortUrlActive(String shortPath);
+
+    boolean isShortUrlLimitExceeded(String shortPath);
+
+    Optional<ShortUrl> getShortUrl(String shortPath);
 
     String getFullShortUrl(ShortUrl shortUrl) throws URISyntaxException;
 
     Optional<ShortUrl> findByPath(String shortPath);
+
+    List<ShortUrl> findAllUrlsByUuid(UUID userUuid);
+
+    String getShortUrlStatus(ShortUrl shortUrl) throws URISyntaxException;
 }
 
 

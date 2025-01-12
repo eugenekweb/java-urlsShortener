@@ -32,7 +32,7 @@ public class UrlRepositoryImpl implements UrlRepository {
     }
 
     @Override
-    public List<ShortUrl> findByUserUuid(UUID userUuid) {
+    public List<ShortUrl> findAllUrlsByUserUuid(UUID userUuid) {
         return urlsById.values().stream()
                 .filter(url -> url.getUserUuid().equals(userUuid))
                 .collect(Collectors.toList());

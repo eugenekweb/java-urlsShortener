@@ -10,6 +10,7 @@ import java.awt.*;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Optional;
 import java.util.Scanner;
 import java.util.UUID;
@@ -29,7 +30,7 @@ public class ConsoleUI {
     }
 
 
-    public void start() {
+    public void start() throws URISyntaxException {
         boolean running = true;
         while (running) {
             if (currentUser == null) {
@@ -57,27 +58,29 @@ public class ConsoleUI {
         }
     }
 
-    private boolean showMainMenu() {
+    private boolean showMainMenu() throws URISyntaxException {
         System.out.println("\n=== Главное меню ===");
         System.out.println("Пользователь: " + currentUser.getUsername());
         System.out.println("1. Создать короткую ссылку");
-        System.out.println("2. Перейти по ссылке");
-        System.out.println("3. Просмотреть статус ссылки");
-        System.out.println("4. Изменить лимит кликов");
-        System.out.println("5. Изменить время жизни ссылки");
-        System.out.println("6. Удалить ссылку");
-        System.out.println("7. Выйти из аккаунта (exit)");
+        System.out.println("2. Показать список моих ссылок");
+        System.out.println("3. Перейти по ссылке");
+        System.out.println("4. Просмотреть статус ссылки");
+        System.out.println("5. Изменить лимит кликов");
+        System.out.println("6. Изменить время жизни ссылки");
+        System.out.println("7. Удалить ссылку");
+        System.out.println("8. Выйти из аккаунта (exit)");
 
         String choice = scanner.nextLine().trim();
 
         switch (choice) {
             case "1" -> createShortUrl();
-            case "2" -> openUrl();
-            case "3" -> showUrlStatus();
-            case "4" -> updateClicksLimit();
-            case "5" -> updateLifetime();
-            case "6" -> deleteUrl();
-            case "7", "exit" -> {
+            case "2" -> listAllMyUrls();
+            case "3" -> openUrl();
+            case "4" -> showUrlStatus();
+            case "5" -> updateClicksLimit();
+            case "6" -> updateLifetime();
+            case "7" -> deleteUrl();
+            case "8", "exit" -> {
                 currentUser = null;
                 System.out.println("Выход из аккаунта выполнен");
             }
@@ -86,6 +89,52 @@ public class ConsoleUI {
 
         return true;
     }
+
+    private void listAllMyUrls() throws URISyntaxException {
+        List<ShortUrl> urls = urlService.findAllUrlsByUuid(currentUser.getUUID());
+        if (urls.isEmpty()) {
+            System.out.println("У вас нет ссылок или все они уже были удалены.");
+            return;
+        }
+        System.out.println("Ваши ссылки:");
+        for (int i = 0; i < urls.size(); i++) {
+            ShortUrl url = urls.get(i);
+            System.out.printf("%d. %s%n", i + 1, urlService.getShortUrlStatus(url));
+        }
+//        System.out.print("Выберите номер ссылки для дальнейших действий с ней:");
+//        try {
+//            int choice = Integer.parseInt(scanner.nextLine().trim()) - 1;
+//            if (choice >= 0 && choice < urls.size()) {
+//                handleSelectedUrl(urls.get(choice));
+//            } else {
+//                System.out.println("Такого номера ссылки нет. Повторите ввод: ");
+//            }
+//        } catch (NumberFormatException e) {
+//            System.out.println("Похоже, Вы ввели не число. Повторите ввод: ");
+//        }
+    }
+//
+//    private void handleSelectedUrl(ShortUrl selectedUrl) {
+//        System.out.println("Выбранная ссылка: " + selectedUrl.toString());
+//        System.out.println("Выберите действие:");
+//        System.out.println("1. Открыть ссылку");
+//        System.out.println("2. Просмотреть статус ссылки");
+//        System.out.println("3. Изменить лимит кликов");
+//        System.out.println("4. Изменить время жизни ссылки");
+//        System.out.println("5. Удалить ссылку");
+//        System.out.println("6. Вернуться в главное меню");
+//
+//        String choice = scanner.nextLine().trim();
+//        switch (choice) {
+//            case "1" -> openUrl(selectedUrl.getShortPath());
+//            case "2" -> showUrlStatus(selectedUrl.getShortPath());
+//            case "3" -> updateClicksLimit(selectedUrl.getShortPath());
+//            case "4" -> updateLifetime(selectedUrl.getShortPath());
+//            case "5" -> deleteUrl(selectedUrl.getShortPath());
+//            case "6" -> { /* Вернуться в главное меню */ }
+//            default -> System.out.println("Что-то пошло не так! Повторите команду.");
+//        }
+//    }
 
     private void login() {
         System.out.println("Введите имя пользователя или UUID для входа.");
@@ -217,10 +266,11 @@ public class ConsoleUI {
         }
     }
 
-    private void showUrlStatus() {
+    private void showUrlStatus() throws URISyntaxException {
         System.out.println("Введите короткий путь ссылки:");
         String shortPath = scanner.nextLine().trim();
-        System.out.println(urlService.getShortUrl(shortPath));
+//        System.out.println(urlService.getShortUrl(shortPath));
+        System.out.println(urlService.getShortUrlStatus(urlService.findByPath(shortPath).get()));
     }
 
     private void updateClicksLimit() {
@@ -296,7 +346,7 @@ public class ConsoleUI {
         String shortPath = scanner.nextLine().trim();
 
         try {
-            urlService.deleteUrl(shortPath, currentUser.getUUID());
+            urlService.deleteShortUrl(shortPath, currentUser.getUUID());
             System.out.println("Ссылка успешно удалена");
         } catch (IllegalArgumentException e) {
             System.out.println("Ошибка удаления: " + e.getMessage());
